@@ -13,7 +13,19 @@
 - [ส่วนที่ 5: เปรียบเทียบ JDBC vs JPA](#-ส่วนที่-5-เปรียบเทียบ)
 
 ---
+วิธีใช้โพยนี้ในห้องสอบ
+เปิดโจทย์มา → ดูตามนี้:
+ถ้าโจทย์บอกว่า JDBC:
 
+ก็อป connectionFactory.java → แก้แค่ url, user, pwd
+ก็อป Entity (เช่น City) → แก้ชื่อ class + field ตามตาราง
+ก็อป CityDAO.java → แก้แค่ SQL string ด้านบน + mapRow() ให้ตรงกับ field
+
+ถ้าโจทย์บอกว่า JPA:
+
+แก้ persistence.xml → url + password + เพิ่ม <class>
+ก็อป Entity template → ใส่ @Entity @Table @Column ให้ครบ
+ก็อป Repository → แก้แค่ชื่อ class 2 จุด
 ## 🔌 ส่วนที่ 1: JDBC
 
 ### โครงสร้างไฟล์ JDBC
