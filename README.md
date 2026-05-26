@@ -687,3 +687,16 @@ JPA:
 - [ ] Entity ทุกตัวอยู่ใน `<class>` ใน xml?
 - [ ] `@Entity`, `@Table`, `@Id`, `@Column` ครบ?
 - [ ] `DataRepository` — แก้ชื่อ persistence-unit ในบรรทัด `emf =`?
+
+
+public class Test {
+    static void main(String[] args) {
+        
+
+        try (Connection con = connectionFactory.getConnection()) {
+            System.out.println("connect success");
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
