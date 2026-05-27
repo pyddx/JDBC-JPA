@@ -1,0 +1,703 @@
+# JDBC DAO CRUD Project with MySQL
+
+โปรเจกต์นี้เป็นตัวอย่างการทำ CRUD (Create, Read, Update, Delete) ด้วยภาษา Java โดยใช้ JDBC เชื่อมต่อกับ MySQL และใช้แนวคิด DAO Pattern เพื่อจัดการโค้ดให้เป็นระเบียบและสามารถนำไปต่อยอดได้ง่าย
+
+---
+
+# 📁 โครงสร้างโปรเจกต์
+
+```bash
+src
+└── sit
+    └── int242
+        ├── doa
+        │   ├── ConnectionFactory.java
+        │   └── jdbcDao.java
+        │
+        ├── models
+        │   └── Film.java
+        │
+        ├── repositories
+        │   └── FilmDao.java
+        │
+        └── Test.java
+```
+
+---
+
+# ⚙️ เทคโนโลยีที่ใช้
+
+* Java
+* JDBC
+* MySQL
+* Lombok
+* DAO Pattern
+
+---
+
+# 🗄️ Database
+
+โปรเจกต์นี้ใช้ฐานข้อมูล `sakila`
+
+```java
+jdbc:mysql://localhost:3306/sakila
+```
+
+---
+
+# 🚀 ก่อนเริ่มใช้งาน
+
+## 1. ติดตั้ง MySQL
+
+ตรวจสอบว่า MySQL Server เปิดใช้งานอยู่
+
+---
+
+## 2. Import Database sakila
+
+นำไฟล์ `sakila.sql` เข้า MySQL
+
+---
+
+## 3. เพิ่ม MySQL JDBC Driver
+
+ถ้าใช้ Maven:
+
+```xml
+<dependency>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <version>9.2.0</version>
+</dependency>
+```
+
+---
+
+## 4. เพิ่ม Lombok
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>1.18.38</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+เปิด Annotation Processing ใน IntelliJ
+
+```text
+Settings → Build → Compiler → Annotation Processors
+✔ Enable annotation processing
+```
+
+---
+
+# 🔌 ConnectionFactory.java
+
+คลาสนี้ทำหน้าที่สร้าง Connection ระหว่าง Java กับ MySQL
+
+```java
+package sit.int242.doa;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class ConnectionFactory {
+    private static String url = "jdbc:mysql://localhost:3306/sakila";
+    private static String user = "root";
+    private static String pwd = "mysql@sit";
+
+    public static Connection getConnection() throws SQLException {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("Driver not found", e);
+        }
+        return DriverManager.getConnection(url, user, pwd);
+    }
+}
+```
+
+---
+
+# 📖 อธิบายโค้ด ConnectionFactory
+
+## URL
+
+```java
+private static String url = "jdbc:mysql://localhost:3306/sakila";
+```
+
+ใช้ระบุว่า:
+
+* ใช้ JDBC เชื่อม MySQL
+* localhost = ใช้ database ในเครื่องตัวเอง
+* 3306 = port ของ MySQL
+* sakila = ชื่อ database
+
+---
+
+## Username และ Password
+
+```java
+private static String user = "root";
+private static String pwd = "mysql@sit";
+```
+
+ใช้สำหรับ login เข้า MySQL
+
+⚠️ ในงานจริงไม่ควร push password ลง GitHub ตรง ๆ
+
+ควรใช้:
+
+```java
+System.getenv("DB_PASSWORD")
+```
+
+แทน
+
+---
+
+## โหลด JDBC Driver
+
+```java
+Class.forName("com.mysql.cj.jdbc.Driver");
+```
+
+เป็นการโหลด Driver ของ MySQL เข้า memory
+
+เปรียบเหมือน:
+
+> “Java เตรียมตัวคุยภาษาของ MySQL ได้แล้ว”
+
+---
+
+## สร้าง Connection
+
+```java
+DriverManager.getConnection(url, user, pwd);
+```
+
+ใช้เชื่อมต่อ Java กับ Database จริง ๆ
+
+---
+
+# 🧩 jdbcDao.java
+
+เป็น Interface กลางสำหรับกำหนด CRUD Method มาตรฐาน
+
+```java
+package sit.int242.doa;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface jdbcDao<T, I> {
+    Optional<T>find(I id);
+    List<T> getAll();
+    void save(T entity);
+    void update(T entity);
+    void delete(I id);
+}
+```
+
+---
+
+# 📖 อธิบาย jdbcDao
+
+## Generic Type
+
+```java
+<T, I>
+```
+
+* T = Entity
+* I = ชนิดของ ID
+
+ตัวอย่าง:
+
+```java
+jdbcDao<Film, Integer>
+```
+
+หมายถึง:
+
+* Entity คือ Film
+* ID เป็น Integer
+
+---
+
+## Method ต่าง ๆ
+
+### ค้นหาข้อมูลจาก ID
+
+```java
+Optional<T> find(I id);
+```
+
+---
+
+### ดึงข้อมูลทั้งหมด
+
+```java
+List<T> getAll();
+```
+
+---
+
+### เพิ่มข้อมูล
+
+```java
+void save(T entity);
+```
+
+---
+
+### แก้ไขข้อมูล
+
+```java
+void update(T entity);
+```
+
+---
+
+### ลบข้อมูล
+
+```java
+void delete(I id);
+```
+
+---
+
+# 🎬 Film.java
+
+คลาส Model สำหรับเก็บข้อมูลของ Film
+
+```java
+package sit.int242.models;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Film {
+    private int id;
+    private String title;
+    private String releaseYear;
+    private String rating;
+    private int languageId;
+}
+```
+
+---
+
+# 📖 อธิบาย Film Model
+
+## Lombok
+
+```java
+@Data
+```
+
+สร้างให้โดยอัตโนมัติ:
+
+* Getter
+* Setter
+* toString()
+* equals()
+* hashCode()
+
+---
+
+## Constructor
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+```
+
+### Constructor เปล่า
+
+```java
+new Film()
+```
+
+### Constructor รับค่าครบ
+
+```java
+new Film(id, title, year, rating, languageId)
+```
+
+---
+
+# 🗂️ FilmDao.java
+
+คลาสนี้ใช้จัดการ CRUD ของตาราง film
+
+```java
+package sit.int242.repositories;
+
+import sit.int242.doa.ConnectionFactory;
+import sit.int242.doa.jdbcDao;
+import sit.int242.models.Film;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+
+public class FilmDao implements jdbcDao<Film, Integer> {
+    private final static String SELECT_ALL = "SELECT * FROM film";
+    private final static String INSERT_FILM = """
+            INSERT INTO film (title, release_year, rating, language_id) VALUE (?,?,?,?)""";
+    private final static String DELETE_FILM = """
+            delete from film where film_id = ?""";
+    private final static String UPDATE_FILM = """
+            update film set title = ?, release_year = ?, rating = ?, language_id = ? where film_id = ?""";
+
+    private Film mapRowToEntity(ResultSet rs) throws SQLException {
+        return new Film(rs.getInt("film_id"), rs.getString("title"), rs.getString("release_year"), rs.getString("rating"), rs.getInt("language_id"));
+    }
+
+    @Override
+    public void update(Film entity) {
+        try (Connection con = ConnectionFactory.getConnection();
+             PreparedStatement preState = con.prepareStatement(UPDATE_FILM)) {
+
+            preState.setString(1, entity.getTitle());
+            preState.setString(2, entity.getReleaseYear());
+            preState.setString(3, entity.getRating());
+            preState.setInt(4, entity.getLanguageId());
+            preState.setInt(5, entity.getId());
+
+            preState.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void delete(Integer id) {
+        try (Connection con = ConnectionFactory.getConnection();
+        PreparedStatement preState = con.prepareStatement(DELETE_FILM)){
+            preState.setInt(1, id);
+            preState.executeUpdate();
+        } catch (SQLException e){
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void save(Film entity) {
+        try (Connection con = ConnectionFactory.getConnection();
+        PreparedStatement preState = con.prepareStatement(INSERT_FILM)) {
+            preState.setString(1, entity.getTitle());
+            preState.setString(2, entity.getReleaseYear());
+            preState.setString(3, entity.getRating());
+            preState.setInt(4, entity.getLanguageId());
+
+            preState.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Optional<Film> find(Integer id) {
+        String statement = "select * from film where film_id = ?";
+
+        try {
+            Connection con = ConnectionFactory.getConnection();
+            PreparedStatement preState = con.prepareStatement(statement);
+            preState.setInt(1, id);
+
+            try (ResultSet rs = preState.executeQuery()) {
+                if (rs.next()) {
+                    Film film = new Film();
+                    film.setId(rs.getInt("film_id"));
+                    film.setTitle(rs.getString("title"));
+                    return Optional.of(film);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public List<Film> getAll() {
+        List<Film> film = new LinkedList<>();
+        try {
+            Connection con = ConnectionFactory.getConnection();
+            ResultSet rs = con.createStatement().executeQuery(SELECT_ALL);
+            while (rs.next()) {
+                film.add(mapRowToEntity(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return film;
+    }
+}
+```
+
+---
+
+# 📖 อธิบาย FilmDao
+
+## SELECT_ALL
+
+```java
+SELECT * FROM film
+```
+
+ดึงข้อมูลทั้งหมดจากตาราง film
+
+---
+
+## INSERT_FILM
+
+```java
+INSERT INTO film (title, release_year, rating, language_id)
+VALUE (?,?,?,?)
+```
+
+เพิ่มข้อมูลใหม่
+
+เครื่องหมาย `?` คือ Placeholder
+
+---
+
+## UPDATE_FILM
+
+```java
+update film
+set title = ?, release_year = ?, rating = ?, language_id = ?
+where film_id = ?
+```
+
+แก้ไขข้อมูลจาก ID
+
+---
+
+## DELETE_FILM
+
+```java
+delete from film where film_id = ?
+```
+
+ลบข้อมูลจาก ID
+
+---
+
+## mapRowToEntity()
+
+```java
+private Film mapRowToEntity(ResultSet rs)
+```
+
+ใช้แปลงข้อมูลจาก ResultSet → Object Film
+
+Database Row → Java Object
+
+---
+
+## PreparedStatement
+
+```java
+PreparedStatement preState
+```
+
+ช่วยป้องกัน SQL Injection
+
+และทำให้ส่ง parameter เข้า SQL ได้ง่ายขึ้น
+
+---
+
+## executeUpdate()
+
+ใช้กับ:
+
+* INSERT
+* UPDATE
+* DELETE
+
+---
+
+## executeQuery()
+
+ใช้กับ:
+
+* SELECT
+
+---
+
+# 🧪 Test.java
+
+ใช้ทดสอบ CRUD ทุกฟังก์ชัน
+
+```java
+package sit.int242;
+
+import sit.int242.models.Film;
+import sit.int242.repositories.FilmDao;
+
+import java.util.List;
+
+public class Test {
+    public static void main(String[] args) {
+        FilmDao filmDao = new FilmDao();
+
+        List<Film> films = filmDao.getAll();
+
+        for (Film f : films) {
+            System.out.println(f);
+        }
+
+        System.out.println("--------------------------");
+
+        filmDao.find(5).ifPresent(film -> System.out.println(film));
+
+        System.out.println("--------------------------");
+
+        Film newData = new Film();
+
+        newData.setTitle("John Wick");
+        newData.setReleaseYear("2026");
+        newData.setRating("R");
+        newData.setLanguageId(1);
+
+        filmDao.save(newData);
+
+        filmDao.find(1001).ifPresentOrElse(
+                film -> System.out.println(film),
+                () -> System.out.println("Not Found")
+        );
+
+        System.out.println("--------------------------");
+
+        filmDao.find(1001).ifPresent(film -> {
+            film.setTitle("John Wick: Chapter 2");
+            film.setRating("NC-17");
+            film.setLanguageId(1);
+
+            filmDao.update(film);
+        });
+
+        System.out.println("--------------------------");
+
+        filmDao.delete(1001);
+
+        filmDao.find(1001).ifPresentOrElse(
+                film -> System.out.println(film),
+                () -> System.out.println("Not Found")
+        );
+    }
+}
+```
+
+---
+
+# 📖 อธิบาย Test.java
+
+## getAll()
+
+```java
+filmDao.getAll()
+```
+
+ดึงข้อมูลทั้งหมดจาก database
+
+---
+
+## find()
+
+```java
+filmDao.find(5)
+```
+
+ค้นหา film_id = 5
+
+---
+
+## save()
+
+```java
+filmDao.save(newData)
+```
+
+เพิ่มข้อมูลใหม่เข้า database
+
+---
+
+## update()
+
+```java
+filmDao.update(film)
+```
+
+แก้ไขข้อมูลเดิม
+
+---
+
+## delete()
+
+```java
+filmDao.delete(1001)
+```
+
+ลบข้อมูลจาก database
+
+---
+
+# 💡 จุดเด่นของโปรเจกต์นี้
+
+✅ แยก Layer ชัดเจน
+✅ ใช้ DAO Pattern
+✅ ใช้ Generic Interface
+✅ ใช้ PreparedStatement ป้องกัน SQL Injection
+✅ ใช้ Lombok ลด Boilerplate Code
+✅ เหมาะสำหรับฝึก JDBC และ OOP Architecture
+
+---
+
+# 🔥 แนวทางพัฒนาต่อ
+
+สามารถต่อยอดได้ เช่น:
+
+* ใช้ Connection Pool
+* เพิ่ม Transaction
+* ใช้ Service Layer
+* ทำ REST API ด้วย Spring Boot
+* ใช้ Hibernate / JPA
+* ทำ Pagination
+* เพิ่ม Logging
+* อ่าน Config จาก `.env`
+
+---
+
+# 📌 สรุป
+
+โปรเจกต์นี้เป็นตัวอย่างพื้นฐานของการใช้ JDBC + DAO Pattern สำหรับเชื่อม Java กับ MySQL และจัดการ CRUD อย่างเป็นระบบ
+
+เหมาะสำหรับ:
+
+* ฝึก JDBC
+* ฝึก OOP
+* เข้าใจ DAO Pattern
+* เรียนรู้การทำ Backend เบื้องต้น
+* เตรียมต่อยอด Spring Boot / JPA ในอนาคต
+
+เพราะสุดท้ายแล้ว...
+
+> ถ้า CRUD ยังงงอยู่
+> ตอนเจอ Hibernate จะงงเหมือนโดนแฟนบอก “ไม่ได้โกรธ” ทั้งที่โกรธมาก 🔥
